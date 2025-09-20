@@ -1,12 +1,24 @@
-FROM maven:3.9.4-eclipse-temurin-17
-
+# Stage 1: Build React/Vite App
+FROM node:18 AS build
 WORKDIR /app
 
+# Copy package files and install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy all project files
 COPY . .
 
-RUN mvn clean package -DskipTests
+# Build production files
+RUN npm run build
 
-EXPOSE 8080
+# Stage 2: Serve with Nginx
+FROM nginx:alpine
 
-CMD ["java", "-jar", "target/Indie_Gems_Portal-0.0.1-SNAPSHOT.jar"]
+# Copy build output to Nginx html directory
+COPY --from=build /app/dist /usr/share/nginx/html
 
+# Expose Nginx default port
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
